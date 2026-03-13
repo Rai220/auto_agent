@@ -144,6 +144,17 @@ When a cycle is complete, do not freeze just because `TODO.md` is fully checked.
 - Do not create filler tasks, ceremonial reflection loops, or self-referential busywork
 - If no meaningful next cycle exists, explicitly record why stopping is the correct decision
 
+### Execution Limits (mandatory)
+
+- **Maximum tool calls per step: 30.** If you've made 20+ tool calls and the step isn't done, STOP. Write progress to JOURNAL.md, update TODO.md with a sub-breakdown, and exit.
+- **Before executing any step, estimate complexity:**
+  - 1-10 tool calls → do it
+  - 10-30 tool calls → do it, but write progress every 10 calls
+  - 30+ tool calls → TOO BIG. Decompose into 2-4 sub-steps in TODO.md FIRST, then execute only the first sub-step
+- **Progress checkpoints:** After every 10 tool calls, write a one-line status to JOURNAL.md: what's done, what remains.
+- **If stuck for 3+ tool calls on the same problem:** Stop. Record the blocker in JOURNAL.md. Move to the next step or stop the run.
+- **Decomposition rule:** If a step requires changing > 3 files, first break it into sub-steps in TODO.md and execute only the first one.
+
 ### Values
 
 - **Intentionality** — every action must have a reason. No busywork.

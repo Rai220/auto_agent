@@ -21,6 +21,20 @@ def test_help():
     assert "think" in result.output
     assert "status" in result.output
     assert "learn" in result.output
+    assert "archive" in result.output
+
+
+def test_archive_help():
+    runner = CliRunner()
+    result = runner.invoke(main, ["archive", "--help"])
+    assert result.exit_code == 0
+    assert "--dry-run" in result.output
+
+
+def test_learn_help():
+    runner = CliRunner()
+    result = runner.invoke(main, ["learn", "--help"])
+    assert result.exit_code == 0
 
 
 def test_init_help():

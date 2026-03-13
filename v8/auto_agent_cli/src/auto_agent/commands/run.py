@@ -1,10 +1,11 @@
 """auto-agent run — run one cycle of the agent."""
 
-import shutil
 import subprocess
 from pathlib import Path
 
 import click
+
+from auto_agent.commands.utils import find_claude, load_file, load_journal_tail
 
 
 # Files that form the agent's "wakeup context" (order matters)
@@ -14,46 +15,18 @@ OPTIONAL_CONTEXT = ["INBOX.md"]
 JOURNAL_TAIL_LINES = 80
 
 
-def _load_file(path: Path, label: str | None = None) -> str | None:
-    """Read file content, return None if missing or empty."""
-    if not path.exists():
-        return None
-    content = path.read_text(encoding="utf-8").strip()
-    if not content:
-        return None
-    header = label or path.name
-    return f"# {header}\n{content}"
-
-
-def _load_journal_tail(target: Path) -> str | None:
-    """Load last N lines of JOURNAL.md."""
-    journal = target / "JOURNAL.md"
-    if not journal.exists():
-        return None
-    text = journal.read_text(encoding="utf-8")
-    lines = text.split("\n")
-    if len(lines) > JOURNAL_TAIL_LINES:
-        tail = "\n".join(lines[-JOURNAL_TAIL_LINES:])
-    else:
-        tail = text
-    tail = tail.strip()
-    if not tail:
-        return None
-    return f"# Журнал (последние записи из JOURNAL.md)\n{tail}"
-
-
 def _build_prompt(target: Path) -> str:
     """Assemble the full wakeup prompt from agent files (mirrors run.sh)."""
     parts: list[str] = []
 
     # Main goal — first
-    main_goal = _load_file(target / "MAIN_GOAL.md", "Main Goal")
+    main_goal = load_file(target / "MAIN_GOAL.md", "Main Goal")
     if main_goal:
         parts.append(main_goal)
 
     # Core context files
     for fname in CONTEXT_FILES:
-        section = _load_file(target / fname)
+        section = load_file(target / fname)
         if section:
             parts.append(section)
         else:
@@ -69,12 +42,12 @@ def _build_prompt(target: Path) -> str:
         )
 
     # Journal tail
-    journal = _load_journal_tail(target)
+    journal = load_journal_tail(target, JOURNAL_TAIL_LINES, "Журнал (последние записи из JOURNAL.md)")
     if journal:
         parts.append(journal)
 
     # Inbox
-    inbox = _load_file(target / "INBOX.md", "Входящие сообщения (INBOX.md)")
+    inbox = load_file(target / "INBOX.md", "Входящие сообщения (INBOX.md)")
     if inbox:
         parts.append(inbox)
     else:
@@ -94,11 +67,6 @@ def _build_prompt(target: Path) -> str:
     )
 
     return "\n\n---\n\n".join(parts)
-
-
-def _find_claude() -> str | None:
-    """Find the claude CLI binary."""
-    return shutil.which("claude")
 
 
 def run_cycle(directory: str) -> None:
@@ -132,7 +100,7 @@ def run_cycle(directory: str) -> None:
     click.echo()
 
     # Find claude CLI
-    claude_bin = _find_claude()
+    claude_bin = find_claude()
     if claude_bin is None:
         click.echo(click.style("Error: ", fg="red") + "'claude' CLI not found in PATH.")
         click.echo()

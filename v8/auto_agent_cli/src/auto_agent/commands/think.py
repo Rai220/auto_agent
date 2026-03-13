@@ -1,10 +1,11 @@
 """auto-agent think — reflection mode without action."""
 
-import shutil
 import subprocess
 from pathlib import Path
 
 import click
+
+from auto_agent.commands.utils import find_claude, load_file, load_journal_tail
 
 
 # Knowledge files loaded for reflection context
@@ -15,46 +16,18 @@ KNOWLEDGE_FILES = [
 JOURNAL_TAIL_LINES = 100
 
 
-def _load_file(path: Path, label: str | None = None) -> str | None:
-    """Read file content, return None if missing or empty."""
-    if not path.exists():
-        return None
-    content = path.read_text(encoding="utf-8").strip()
-    if not content:
-        return None
-    header = label or path.name
-    return f"# {header}\n{content}"
-
-
-def _load_journal_tail(target: Path) -> str | None:
-    """Load last N lines of JOURNAL.md."""
-    journal = target / "JOURNAL.md"
-    if not journal.exists():
-        return None
-    text = journal.read_text(encoding="utf-8")
-    lines = text.split("\n")
-    if len(lines) > JOURNAL_TAIL_LINES:
-        tail = "\n".join(lines[-JOURNAL_TAIL_LINES:])
-    else:
-        tail = text
-    tail = tail.strip()
-    if not tail:
-        return None
-    return f"# Мой журнал (последние записи из JOURNAL.md)\n{tail}"
-
-
 def _build_think_prompt(target: Path, topic: str | None) -> str:
     """Assemble reflection prompt from agent files (mirrors think.sh)."""
     parts: list[str] = []
 
     # Load all knowledge files
     for fname in KNOWLEDGE_FILES:
-        section = _load_file(target / fname)
+        section = load_file(target / fname)
         if section:
             parts.append(section)
 
     # Journal tail
-    journal = _load_journal_tail(target)
+    journal = load_journal_tail(target, JOURNAL_TAIL_LINES, "Мой журнал (последние записи из JOURNAL.md)")
     if journal:
         parts.append(journal)
 
@@ -92,11 +65,6 @@ def _build_think_prompt(target: Path, topic: str | None) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-def _find_claude() -> str | None:
-    """Find the claude CLI binary."""
-    return shutil.which("claude")
-
-
 def run_think(directory: str, topic: str | None) -> None:
     """Enter thinking mode — invoke Claude with reflection prompt."""
     target = Path(directory).resolve()
@@ -129,7 +97,7 @@ def run_think(directory: str, topic: str | None) -> None:
     click.echo()
 
     # Find claude CLI
-    claude_bin = _find_claude()
+    claude_bin = find_claude()
     if claude_bin is None:
         click.echo(click.style("Error: ", fg="red") + "'claude' CLI not found in PATH.")
         click.echo()

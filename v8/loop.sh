@@ -5,6 +5,13 @@ TODO_FILE="$SCRIPT_DIR/TODO.md"
 INBOX_FILE="$SCRIPT_DIR/INBOX.md"
 MAX_IDLE_REPLANS=2  # Сколько replanning-проходов без новых задач допускается перед остановкой
 
+# Встроенные runtime-настройки для Claude и recovery-цикла.
+# При необходимости их всё ещё можно переопределить через environment.
+export AUTO_AGENT_CLAUDE_TIMEOUT="${AUTO_AGENT_CLAUDE_TIMEOUT:-5m}"
+export AUTO_AGENT_CLAUDE_GRACE="${AUTO_AGENT_CLAUDE_GRACE:-10s}"
+export AUTO_AGENT_FAILURE_BACKOFF_SECONDS="${AUTO_AGENT_FAILURE_BACKOFF_SECONDS:-5}"
+FAILURE_BACKOFF_SECONDS="$AUTO_AGENT_FAILURE_BACKOFF_SECONDS"
+
 todo_has_open_tasks() {
   [[ -f "$TODO_FILE" ]] || return 1
   grep -qE '^\s*-\s*\[\s\]\s+' "$TODO_FILE"
@@ -31,6 +38,7 @@ has_unread_messages() {
 
 run_loop() {
   local idle_replans=0
+  local consecutive_failures=0
 
   while true; do
     if ! has_unread_messages && ! todo_has_open_tasks && [[ "$idle_replans" -ge "$MAX_IDLE_REPLANS" ]]; then
@@ -55,11 +63,26 @@ run_loop() {
     fi
 
     echo "=== Запуск агента: $(date) ==="
+    echo "=== Runtime config: timeout=$AUTO_AGENT_CLAUDE_TIMEOUT, grace=$AUTO_AGENT_CLAUDE_GRACE, backoff=${FAILURE_BACKOFF_SECONDS}s ==="
     if [[ "$replan_requested" -eq 1 ]]; then
       AUTO_AGENT_REPLAN=1 bash "$SCRIPT_DIR/run.sh"
+      run_exit=$?
     else
       bash "$SCRIPT_DIR/run.sh"
+      run_exit=$?
     fi
+
+    if [[ "$run_exit" -ne 0 ]]; then
+      consecutive_failures=$((consecutive_failures + 1))
+      idle_replans=0
+      echo "=== Агент аварийно завершился с кодом $run_exit: $(date) ==="
+      echo "=== Инцидент записан в runtime-лог. Продолжаю цикл через ${FAILURE_BACKOFF_SECONDS}с (сбой подряд: $consecutive_failures) ==="
+      echo ""
+      sleep "$FAILURE_BACKOFF_SECONDS"
+      continue
+    fi
+
+    consecutive_failures=0
     echo "=== Агент завершил работу: $(date) ==="
 
     if [[ "$replan_requested" -eq 1 ]]; then

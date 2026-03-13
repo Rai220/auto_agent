@@ -1,43 +1,16 @@
 """auto-agent learn — web research mode."""
 
-import shutil
 import subprocess
 from pathlib import Path
 
 import click
 
+from auto_agent.commands.utils import find_claude, load_file, load_journal_tail
+
 
 # Files that provide existing knowledge context
 CONTEXT_FILES = ["KNOWLEDGE.md", "MEMORY.md", "COMPARISON.md"]
 JOURNAL_TAIL_LINES = 40
-
-
-def _load_file(path: Path, label: str | None = None) -> str | None:
-    """Read file content, return None if missing or empty."""
-    if not path.exists():
-        return None
-    content = path.read_text(encoding="utf-8").strip()
-    if not content:
-        return None
-    header = label or path.name
-    return f"# {header}\n{content}"
-
-
-def _load_journal_tail(target: Path) -> str | None:
-    """Load last N lines of JOURNAL.md for recent context."""
-    journal = target / "JOURNAL.md"
-    if not journal.exists():
-        return None
-    text = journal.read_text(encoding="utf-8")
-    lines = text.split("\n")
-    if len(lines) > JOURNAL_TAIL_LINES:
-        tail = "\n".join(lines[-JOURNAL_TAIL_LINES:])
-    else:
-        tail = text
-    tail = tail.strip()
-    if not tail:
-        return None
-    return f"# Недавние записи журнала\n{tail}"
 
 
 def _build_learn_prompt(target: Path, topic: str, save: bool) -> str:
@@ -46,12 +19,12 @@ def _build_learn_prompt(target: Path, topic: str, save: bool) -> str:
 
     # Load existing knowledge context
     for fname in CONTEXT_FILES:
-        section = _load_file(target / fname)
+        section = load_file(target / fname)
         if section:
             parts.append(section)
 
     # Recent journal for context continuity
-    journal = _load_journal_tail(target)
+    journal = load_journal_tail(target, JOURNAL_TAIL_LINES, "Недавние записи журнала")
     if journal:
         parts.append(journal)
 
@@ -92,11 +65,6 @@ def _build_learn_prompt(target: Path, topic: str, save: bool) -> str:
     return "\n\n---\n\n".join(parts)
 
 
-def _find_claude() -> str | None:
-    """Find the claude CLI binary."""
-    return shutil.which("claude")
-
-
 def run_learn(directory: str, topic: str, save: bool) -> None:
     """Run web research by invoking Claude with research prompt."""
     target = Path(directory).resolve()
@@ -130,7 +98,7 @@ def run_learn(directory: str, topic: str, save: bool) -> None:
     click.echo()
 
     # Find claude CLI
-    claude_bin = _find_claude()
+    claude_bin = find_claude()
     if claude_bin is None:
         click.echo(click.style("Error: ", fg="red") + "'claude' CLI not found in PATH.")
         click.echo()
