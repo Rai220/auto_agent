@@ -60,6 +60,15 @@ def _build_prompt(target: Path) -> str:
         else:
             parts.append(f"# {fname}\n_Файл не найден._")
 
+    # Archive notice — if MEMORY_ARCHIVE.md exists, note it for context
+    archive_path = target / "MEMORY_ARCHIVE.md"
+    if archive_path.exists():
+        parts.append(
+            "# Архив памяти\n"
+            "⚠️ Старые записи перенесены в MEMORY_ARCHIVE.md. "
+            "Если нужен полный контекст ранних запусков, прочитай этот файл."
+        )
+
     # Journal tail
     journal = _load_journal_tail(target)
     if journal:

@@ -58,5 +58,39 @@ def status(directory: str, verbose: bool):
     run_status(directory, verbose=verbose)
 
 
+@main.command()
+@click.argument("topic")
+@click.option("--directory", "-d", default=".", help="Agent directory")
+@click.option("--save/--no-save", default=True, help="Save results to KNOWLEDGE.md (default: yes)")
+@click.option("--dry-run", is_flag=True, help="Show context without running Claude")
+def learn(topic: str, directory: str, save: bool, dry_run: bool):
+    """Research a topic using web search and update knowledge base."""
+    if dry_run:
+        from auto_agent.commands.learn import show_learn_context
+        show_learn_context(directory, topic, save)
+    else:
+        from auto_agent.commands.learn import run_learn
+        run_learn(directory, topic, save)
+
+
+@main.command()
+@click.option("--directory", "-d", default=".", help="Agent directory")
+@click.option("--keep", "-k", default=10, help="Number of recent runs to keep in core memory (default: 10)")
+@click.option("--dry-run", is_flag=True, help="Show what would be archived without making changes")
+def archive(directory: str, keep: int, dry_run: bool):
+    """Archive old MEMORY.md entries to MEMORY_ARCHIVE.md.
+
+    Implements progressive memory: keeps recent runs in core memory (always
+    loaded), moves older runs to archive (accessible on demand). Inspired by
+    Letta/MemGPT's core/archival memory split.
+    """
+    if dry_run:
+        from auto_agent.commands.archive import show_archive_plan
+        show_archive_plan(directory, keep)
+    else:
+        from auto_agent.commands.archive import run_archive
+        run_archive(directory, keep)
+
+
 if __name__ == "__main__":
     main()

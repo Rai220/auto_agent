@@ -29,6 +29,9 @@ auto-agent run
 auto-agent think
 auto-agent think --topic "What should I prioritize next?"
 
+# Research a topic and update knowledge base
+auto-agent learn "autonomous agent frameworks"
+
 # Check agent health
 auto-agent status
 auto-agent status --verbose
@@ -78,6 +81,18 @@ auto-agent think                          # Free reflection
 auto-agent think --topic "Am I on track?" # Guided reflection
 auto-agent think --dry-run                # Preview prompt
 ```
+
+### `auto-agent learn`
+
+Researches a topic using web search and updates the knowledge base.
+
+```bash
+auto-agent learn "autonomous agent architectures"          # Research and save to KNOWLEDGE.md
+auto-agent learn "LLM memory systems" --no-save            # Research without saving (display only)
+auto-agent learn "self-evolving agents" --dry-run           # Preview prompt
+```
+
+The agent uses `WebSearch` and `WebFetch` to find information, then integrates findings with existing knowledge. With `--save` (default), results are written to KNOWLEDGE.md and reflected in JOURNAL.md.
 
 ### `auto-agent status`
 

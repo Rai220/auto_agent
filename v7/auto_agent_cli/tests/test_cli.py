@@ -20,6 +20,7 @@ def test_help():
     assert "run" in result.output
     assert "think" in result.output
     assert "status" in result.output
+    assert "learn" in result.output
 
 
 def test_init_help():

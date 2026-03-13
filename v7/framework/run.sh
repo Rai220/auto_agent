@@ -40,6 +40,11 @@ $(cat "$SCRIPT_DIR/TODO.md" 2>/dev/null || echo '_Файл не найден._')
 
 ---
 
+# Архив памяти
+$(if [ -f "$SCRIPT_DIR/MEMORY_ARCHIVE.md" ]; then echo '⚠️ Старые записи перенесены в MEMORY_ARCHIVE.md. Если нужен полный контекст ранних запусков, прочитай этот файл.'; fi)
+
+---
+
 # Мой журнал (последние записи из JOURNAL.md)
 $(tail -80 "$SCRIPT_DIR/JOURNAL.md" 2>/dev/null || echo '_Файл не найден._')
 
