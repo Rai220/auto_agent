@@ -3,12 +3,22 @@
 SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 TODO_FILE="$SCRIPT_DIR/TODO.md"
 INBOX_FILE="$SCRIPT_DIR/INBOX.md"
-MAX_IDLE_RUNS=1  # Максимум холостых запусков перед остановкой
+MAX_IDLE_REPLANS=2  # Сколько replanning-проходов без новых задач допускается перед остановкой
+
+todo_has_open_tasks() {
+  [[ -f "$TODO_FILE" ]] || return 1
+  grep -qE '^\s*-\s*\[\s\]\s+' "$TODO_FILE"
+}
+
+todo_has_done_tasks() {
+  [[ -f "$TODO_FILE" ]] || return 1
+  grep -qE '^\s*-\s*\[[xX]\]\s+' "$TODO_FILE"
+}
 
 todo_cycle_completed() {
   [[ -f "$TODO_FILE" ]] || return 1
-  grep -qE '^\s*-\s*\[\s\]\s+' "$TODO_FILE" && return 1
-  grep -qE '^\s*-\s*\[[xX]\]\s+' "$TODO_FILE"
+  todo_has_open_tasks && return 1
+  todo_has_done_tasks
 }
 
 has_unread_messages() {
@@ -20,43 +30,47 @@ has_unread_messages() {
 }
 
 run_loop() {
-  local force_next_cycle=0
-  local idle_runs=0
+  local idle_replans=0
 
   while true; do
-    # Проверяем, завершён ли цикл
-    if todo_cycle_completed; then
-      # Есть непрочитанные сообщения — запускаем для обработки
-      if has_unread_messages; then
-        echo "=== TODO завершён, но есть непрочитанные сообщения — запускаю ($(date)) ==="
-        idle_runs=0
-      # Первый раз после завершения — один принудительный проход
-      elif [[ "$force_next_cycle" -eq 0 ]]; then
-        echo "=== TODO-цикл завершён: запускаю один принудительный проход ($(date)) ==="
-        force_next_cycle=1
-      # Уже был принудительный проход, проверяем лимит холостых
-      else
-        idle_runs=$((idle_runs + 1))
-        if [[ "$idle_runs" -ge "$MAX_IDLE_RUNS" ]]; then
-          echo "=== Остановка: $idle_runs холостых запусков, TODO завершён, входящих нет ($(date)) ==="
-          echo "=== Для продолжения: обнови MAIN_GOAL.md, добавь сообщение в INBOX.md, или запусти с FORCE_NEXT_CYCLE=1 ==="
-          break
-        fi
-        echo "=== Холостой запуск $idle_runs/$MAX_IDLE_RUNS ($(date)) ==="
-      fi
+    if ! has_unread_messages && ! todo_has_open_tasks && [[ "$idle_replans" -ge "$MAX_IDLE_REPLANS" ]]; then
+      echo "=== Остановка: $idle_replans replanning-проходов без новых задач ($(date)) ==="
+      echo "=== Агент решил, что без новых входящих или смены цели осмысленного продолжения нет ==="
+      break
+    fi
+
+    local replan_requested=0
+
+    if has_unread_messages; then
+      echo "=== Есть непрочитанные сообщения — запускаю обработку ($(date)) ==="
+    elif todo_has_open_tasks; then
+      echo "=== Есть незакрытые шаги TODO — продолжаю цикл ($(date)) ==="
     else
-      # Есть незакрытые шаги — сбрасываем счётчики
-      idle_runs=0
-      force_next_cycle=0
+      replan_requested=1
+      if todo_cycle_completed; then
+        echo "=== TODO-цикл завершён: запускаю автономное перепланирование ($(date)) ==="
+      else
+        echo "=== В TODO нет открытых шагов: запускаю планирование нового цикла ($(date)) ==="
+      fi
     fi
 
     echo "=== Запуск агента: $(date) ==="
-    if [[ "$force_next_cycle" -eq 1 ]]; then
-      AUTO_AGENT_FORCE_NEXT_CYCLE=1 bash "$SCRIPT_DIR/run.sh"
+    if [[ "$replan_requested" -eq 1 ]]; then
+      AUTO_AGENT_REPLAN=1 bash "$SCRIPT_DIR/run.sh"
     else
       bash "$SCRIPT_DIR/run.sh"
     fi
     echo "=== Агент завершил работу: $(date) ==="
+
+    if [[ "$replan_requested" -eq 1 ]]; then
+      if ! has_unread_messages && ! todo_has_open_tasks; then
+        idle_replans=$((idle_replans + 1))
+      else
+        idle_replans=0
+      fi
+    else
+      idle_replans=0
+    fi
 
     echo ""
   done

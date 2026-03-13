@@ -90,7 +90,7 @@ if grep -q "\- \[ \]" "$DIR/TODO.md" 2>/dev/null; then
     OPEN_TASKS=$(grep -c "\- \[ \]" "$DIR/TODO.md")
     check "TODO.md содержит открытые задачи ($OPEN_TASKS шт.)" 0
 else
-    check "TODO.md содержит открытые задачи" 2 "Все задачи закрыты — нужно создать новые!"
+    check "TODO.md содержит открытые задачи" 2 "Все задачи закрыты — проверь, нужен ли новый TODO-цикл"
 fi
 
 # GOALS.md должен содержать хотя бы одну цель

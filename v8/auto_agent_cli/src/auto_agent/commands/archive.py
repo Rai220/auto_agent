@@ -106,7 +106,7 @@ def _build_core_memory(parsed: dict, keep_runs: int) -> str:
         first_archived = parsed["runs"][0][0]
         last_archived = parsed["runs"][-keep_runs - 1][0] if len(parsed["runs"]) > keep_runs else 0
         parts.append("")
-        parts.append(f"> 📦 Запуски 1–{last_archived} перенесены в MEMORY_ARCHIVE.md ({archived_count} записей)")
+        parts.append(f"> 📦 Запуски {first_archived}–{last_archived} перенесены в MEMORY_ARCHIVE.md ({archived_count} записей)")
         parts.append("")
 
     for _, run_text in recent_runs:
@@ -122,13 +122,34 @@ def _build_core_memory(parsed: dict, keep_runs: int) -> str:
 
 
 def _build_archive(parsed: dict, keep_runs: int, existing_archive: str | None = None) -> str:
-    """Build or update MEMORY_ARCHIVE.md with older runs."""
+    """Build or update MEMORY_ARCHIVE.md with older runs.
+
+    If existing_archive is provided, new runs are appended to it
+    (preserving previously archived entries).
+    """
     archived_runs = parsed["runs"][:-keep_runs] if len(parsed["runs"]) > keep_runs else []
 
     if not archived_runs:
         return existing_archive or ""
 
-    # Build archive content
+    # New run entries to add
+    new_run_texts = []
+    for _, run_text in archived_runs:
+        new_run_texts.append(f"\n{run_text}")
+
+    now = datetime.now().strftime("%Y-%m-%d %H:%M")
+    new_footer = (
+        f"\n\n---\n\n"
+        f"*Архивировано: {now}. "
+        f"Записей: {len(archived_runs)} "
+        f"(запуски {archived_runs[0][0]}–{archived_runs[-1][0]})*\n"
+    )
+
+    if existing_archive and existing_archive.strip():
+        # Append new runs to existing archive
+        return existing_archive.rstrip() + "\n" + "\n".join(new_run_texts) + new_footer
+
+    # Create fresh archive
     header = (
         "# Архив памяти (MEMORY_ARCHIVE.md)\n\n"
         "Старые записи, перенесённые из MEMORY.md для экономии контекста.\n"
@@ -136,19 +157,7 @@ def _build_archive(parsed: dict, keep_runs: int, existing_archive: str | None = 
         "---\n"
     )
 
-    run_texts = []
-    for _, run_text in archived_runs:
-        run_texts.append(f"\n{run_text}")
-
-    now = datetime.now().strftime("%Y-%m-%d %H:%M")
-    footer = (
-        f"\n\n---\n\n"
-        f"*Архивировано: {now}. "
-        f"Записей: {len(archived_runs)} "
-        f"(запуски {archived_runs[0][0]}–{archived_runs[-1][0]})*\n"
-    )
-
-    return header + "\n".join(run_texts) + footer
+    return header + "\n".join(new_run_texts) + new_footer
 
 
 def archive_memory(directory: str, keep_runs: int = DEFAULT_KEEP_RUNS, dry_run: bool = False) -> dict:

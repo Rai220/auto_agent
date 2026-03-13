@@ -10,6 +10,7 @@ Python equivalent of health_check.sh with 7 check categories:
 7. INBOX check
 """
 
+import os
 import re
 import subprocess
 import time
@@ -217,7 +218,6 @@ class HealthChecker:
         for script in SCRIPTS:
             spath = self.target / script
             if spath.exists():
-                import os
                 if os.access(spath, os.X_OK):
                     click.echo(f"  {click.style('OK', fg='green')}  {script} (executable)")
                     self.check(f"{script} is executable", 0)

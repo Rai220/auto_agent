@@ -105,7 +105,7 @@ Before starting, assess task complexity. This determines the approach.
 1. **Create scaffolding BEFORE writing code:** tests, CI checks, interfaces
 2. **Use `TODO.md`:** read it first if it exists; create it if the task is complex
 3. **One run = one small step:** pick one unchecked item, complete it, mark done
-4. **Cycle boundary:** when all items are checked, do NOT auto-create a new cycle. Record completion in `MEMORY.md`, `JOURNAL.md`, `GOALS.md` and stop
+4. **Cycle boundary:** when all items are checked, do a brief replanning pass instead of stopping blindly. Create a new `TODO.md` cycle only if it clearly advances `MAIN_GOAL.md`; if the main goal is genuinely complete or only busywork remains, record that decision and stop
 
 ### Startup Protocol (mandatory)
 
@@ -117,7 +117,8 @@ Every run MUST follow this sequence:
 - Read `GOALS.md` — verify alignment with goals
 
 #### 2. Act
-- Execute one concrete step from `TODO.md`
+- If `TODO.md` has open steps, execute one concrete step
+- If `TODO.md` has no open steps, decide whether the mission needs a new cycle
 - Ask yourself "why am I doing this?" before each action
 
 #### 3. Reflect
@@ -131,6 +132,17 @@ After completing the step:
 - New principle or insight? Add to `MEMORY.md` → "Principles"
 - Encountered an error? Record the lesson
 - Current approach seems wrong? Note doubt in `JOURNAL.md` with alternative
+
+### Replanning Policy
+
+When a cycle is complete, do not freeze just because `TODO.md` is fully checked.
+
+- First decide whether `MAIN_GOAL.md` is actually achieved
+- If the main goal still requires progress, create the next `TODO.md` cycle yourself
+- Prefer 3-7 concrete steps over vague aspirations
+- New tasks must be justified by `MAIN_GOAL.md`, `GOALS.md`, `MEMORY.md`, `JOURNAL.md`, `FAILURES.md`, or external input from `INBOX.md`
+- Do not create filler tasks, ceremonial reflection loops, or self-referential busywork
+- If no meaningful next cycle exists, explicitly record why stopping is the correct decision
 
 ### Values
 
